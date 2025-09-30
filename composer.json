@@ -4,8 +4,8 @@
     "type": "laravel-package",
     "require": {
         "php": "^8.2",
-        "illuminate/console": "^10.0 || ^11.0",
-        "illuminate/support": "^10.0 || ^11.0",
+        "illuminate/console": "^12.0",
+        "illuminate/support": "^12.0",
         "guzzlehttp/guzzle": "^7.0"
     },
     "autoload": {
