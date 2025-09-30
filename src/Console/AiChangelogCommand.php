@@ -1,9 +1,9 @@
 <?php
 
-namespace Amjithk\AiChangelog\Console;
+namespace Amjitk\AiChangelog\Console;
 
 use Illuminate\Console\Command;
-use Amjithk\AiChangelog\ChangelogGenerator;
+use Amjitk\AiChangelog\ChangelogGenerator;
 use Illuminate\Support\Facades\File;
 use Symfony\Component\Process\Process;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;

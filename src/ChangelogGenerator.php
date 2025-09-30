@@ -1,6 +1,6 @@
 <?php
 
-namespace Amjithk\AiChangelog;
+namespace Amjitk\AiChangelog;
 
 use Illuminate\Support\Facades\Http;
 use Symfony\Component\Process\Process;

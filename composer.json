@@ -1,5 +1,5 @@
 {
-    "name": "amjithk/laravel-ai-changelog",
+    "name": "amjitk/laravel-ai-changelog",
     "description": "AI-powered changelog generator for Laravel.",
     "type": "laravel-package",
     "require": {
@@ -10,13 +10,13 @@
     },
     "autoload": {
         "psr-4": {
-            "Amjithk\\AiChangelog\\": "src/"
+            "Amjitk\\AiChangelog\\": "src/"
         }
     },
     "extra": {
         "laravel": {
             "providers": [
-                "Amjithk\\AiChangelog\\AiChangelogServiceProvider"
+                "Amjitk\\AiChangelog\\AiChangelogServiceProvider"
             ]
         }
     }

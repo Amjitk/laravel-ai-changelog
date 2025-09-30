@@ -1,9 +1,9 @@
 <?php
 
-namespace Amjithk\AiChangelog;
+namespace Amjitk\AiChangelog;
 
 use Illuminate\Support\ServiceProvider;
-use Amjithk\AiChangelog\Console\AiChangelogCommand;
+use Amjitk\AiChangelog\Console\AiChangelogCommand;
 
 class AiChangelogServiceProvider extends ServiceProvider
 {
