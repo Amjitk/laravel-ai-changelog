@@ -11,7 +11,7 @@ class AiChangelogServiceProvider extends ServiceProvider
     {
         // Publish the configuration file
         $this->publishes([
-            __DIR__.'/config/ai-changelog.php' => $this->app->configPath('ai-changelog.php'),
+            __DIR__.'/config/ai-changelog.php' => config_path('ai-changelog.php'),
         ], 'ai-changelog-config');
 
         // Register the artisan command
@@ -31,7 +31,7 @@ class AiChangelogServiceProvider extends ServiceProvider
 
         // Bind the core logic to the service container
         $this->app->singleton(ChangelogGenerator::class, function ($app) {
-            return new ChangelogGenerator($app->config('ai-changelog'));
+            return new ChangelogGenerator(config('ai-changelog')); // ✅ use helper
         });
     }
 }

@@ -21,20 +21,16 @@ class AiChangelogCommand extends Command
 
     protected ChangelogGenerator $generator;
 
-    protected array $config;
-
-    public function __construct(ChangelogGenerator $generator, ConfigRepository $config)
+    public function __construct(ChangelogGenerator $generator)
     {
         parent::__construct();
 
         $this->generator = $generator;
-
-        $this->config = $config->get('ai-changelog');
     }
 
     public function handle()
     {
-        $config = $this->config;
+        $config = config('ai-changelog');
         $from = $this->option('from');
         $compare = $this->option('compare') ?? $config['git']['default_compare_branch'];
         $branch = $this->option('branch') ?? $this->getCurrentBranch();
