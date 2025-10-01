@@ -2,6 +2,7 @@
     "name": "amjitk/laravel-ai-changelog",
     "description": "AI-powered changelog generator for Laravel.",
     "type": "laravel-package",
+    "license": "MIT",
     "require": {
         "php": "^8.2",
         "illuminate/console": "^12.0",
