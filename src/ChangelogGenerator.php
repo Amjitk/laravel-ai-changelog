@@ -2,8 +2,9 @@
 
 namespace Amjitk\AiChangelog;
 
-use Illuminate\Support\Facades\Http;
+use HosseinHezami\LaravelGemini\Facades\Gemini;
 use Symfony\Component\Process\Process;
+use Illuminate\Support\Facades\Log;
 
 class ChangelogGenerator
 {
@@ -25,13 +26,21 @@ class ChangelogGenerator
     {
         // 1. Get raw commit messages
         $rawCommits = $this->getRawCommits($fromCommit, $toCommit, $branch);
+        $lines = explode("\n", trim($rawCommits));
+        $formattedCommits = "";
 
-        if (empty(trim($rawCommits))) {
-            return null;
+        foreach ($lines as $line) {
+            if (preg_match('/^(feat|fix|chore|docs|refactor|test|style):\s*(.+)$/i', $line, $matches)) {
+                $type = $matches[1];
+                $message = $matches[2];
+                $formattedCommits .= "# " . date('Y-m-d') . " - {$type}: {$message}\n";
+            } else {
+                $formattedCommits .= "# " . date('Y-m-d') . " - commit: {$line}\n";
+            }
         }
 
-        // 2. Build the AI Prompt
-        $prompt = $this->config['ai_prompt_prefix'] . "\n\n---\n" . $rawCommits;
+        // Now pass $formattedCommits to AI for generating bullet points
+        $prompt = $this->config['ai_prompt_prefix'] . "\n\n---\n" . $formattedCommits;
 
         // 3. Call the AI Service
         return $this->callAIService($prompt);
@@ -42,50 +51,49 @@ class ChangelogGenerator
      */
     protected function getRawCommits(string $from, string $to, string $branch): string
     {
-        // Uses --first-parent to ignore merged feature commits unless they are squashed.
-        // Adjust the format if needed, but this is detailed for the AI.
-        $command = "git log --pretty=format:'%h - %s%n%b' --no-merges {$from}..{$to} --first-parent --date-order -- {$branch}";
-        
+        $command = "git log --pretty=format:'%h - %s%n%b' --no-merges {$from}..{$to} --first-parent --date-order";
+
         $process = Process::fromShellCommandline($command);
         $process->run();
 
         if (!$process->isSuccessful()) {
-            // In a real package, you'd log this error instead of returning it directly
             throw new \RuntimeException("Git command failed: " . $process->getErrorOutput());
         }
 
         return $process->getOutput();
     }
 
+
     /**
      * Calls the external AI API.
      */
     protected function callAIService(string $prompt): ?string
     {
-        $apiConfig = $this->config['api'];
-
         try {
-            $response = Http::withToken($apiConfig['key'])
-                ->timeout(60)
-                ->post($apiConfig['url'], [
-                    'model' => $apiConfig['model'],
-                    'messages' => [
-                        ['role' => 'user', 'content' => $prompt],
-                    ],
-                    'temperature' => $apiConfig['temperature'],
-                ]);
+            $response = Gemini::text()
+            ->model($this->config['api']['model'] ?? 'gemini-2.5-flash')
+            ->system('You are a helpful assistant. Your task is to summarize Git commit messages into a user-friendly changelog.')
+            ->prompt($prompt)
+            ->temperature($this->config['api']['temperature'] ?? 0.3)
+            ->maxTokens($this->config['api']['max_tokens'] ?? 1024)
+            ->generate();
 
-            if ($response->successful()) {
-                // Ensure you have error handling for null responses if the AI fails to generate.
-                return trim($response->json('choices.0.message.content'));
-            }
-
-            // Throw a specific exception on API error for better debugging
-            throw new \Exception("AI API Error ({$response->status()}): " . $response->body());
+            // Return the generated text
+            return $response->content();
 
         } catch (\Exception $e) {
-            // In a package, you would log this exception
+            $this->logAIError($e->getMessage());
             return null;
         }
     }
+
+    /**
+     * Helper to log AI errors
+     */
+    protected function logAIError(string $message)
+    {
+        Log::error("[AI Changelog] API Error: {$message}");
+        echo "⚠️ AI API Error: {$message}\n"; // also show in console
+    }
+
 }

@@ -6,7 +6,6 @@ use Illuminate\Console\Command;
 use Amjitk\AiChangelog\ChangelogGenerator;
 use Illuminate\Support\Facades\File;
 use Symfony\Component\Process\Process;
-use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Exception;
 
 class AiChangelogCommand extends Command
@@ -14,7 +13,7 @@ class AiChangelogCommand extends Command
     protected $signature = 'changelog:ai:generate
                             {--from= : The starting Git commit SHA or tag. If omitted, it compares against the --compare branch or last tag.}
                             {--compare= : The base branch to compare against (e.g., staging). Defaults to config value.}
-                            {--version= : Manually set the version number for the changelog heading.}
+                            {--cversion= : Manually set the version number for the changelog heading.}
                             {--branch= : The branch being analyzed. Defaults to the current Git branch.}';
 
     protected $description = 'Generates an AI-summarized changelog based on git commits.';
@@ -34,7 +33,7 @@ class AiChangelogCommand extends Command
         $from = $this->option('from');
         $compare = $this->option('compare') ?? $config['git']['default_compare_branch'];
         $branch = $this->option('branch') ?? $this->getCurrentBranch();
-        
+
         // Determine the 'from' point for the git log command
         try {
             $fromCommit = $from ?: $this->getComparisonPoint($compare);
@@ -49,14 +48,18 @@ class AiChangelogCommand extends Command
         $changelogMarkdown = $this->generator->generate($fromCommit, 'HEAD', $branch);
 
         if (!$changelogMarkdown) {
-            $this->comment('No new commits found or AI summarization failed.');
+            $this->comment('⚠️ No new commits found or AI summarization failed. Check logs for details.');
             return Command::SUCCESS;
         }
 
         // 2. Write the Changelog
-        $this->writeChangelog($config['output']['file'], $changelogMarkdown, $this->option('version'));
+        $this->writeChangelog(
+            $config['output']['file'],
+            $changelogMarkdown,
+            $this->option('cversion')
+        );
 
-        $this->info('Changelog generated successfully!');
+        $this->info('✅ Changelog generated successfully!');
         $this->comment("Output written to: {$config['output']['file']}");
 
         return Command::SUCCESS;
@@ -67,33 +70,27 @@ class AiChangelogCommand extends Command
      */
     protected function getComparisonPoint(string $compareBranch): string
     {
-        try {
-            // Try to find the common ancestor (merge base) to only get feature changes
-            $command = "git merge-base {$compareBranch} HEAD";
-            $process = Process::fromShellCommandline($command);
-            $process->run();
+        // Try merge-base
+        $process = Process::fromShellCommandline("git merge-base {$compareBranch} HEAD");
+        $process->run();
+        $mergeBase = trim($process->getOutput());
 
-            if ($process->isSuccessful() && trim($process->getOutput())) {
-                $this->comment("Using merge base with '{$compareBranch}' as the starting point.");
-                return trim($process->getOutput());
-            }
-
-            // Fallback: Use the latest tag if merge-base fails (typical for staging/main branches)
-            $command = "git describe --tags --abbrev=0";
-            $process = Process::fromShellCommandline($command);
-            $process->run();
-            
-            if ($process->isSuccessful() && trim($process->getOutput())) {
-                 $this->comment("Using latest tag as the starting point.");
-                return trim($process->getOutput());
-            }
-
-            throw new Exception("Could not determine a starting commit. Please specify it using --from=SHA.");
-
-        } catch (Exception $e) {
-            throw new Exception("Git command failed: " . $e->getMessage());
+        if ($process->isSuccessful() && $mergeBase && $mergeBase !== trim(shell_exec('git rev-parse HEAD'))) {
+            $this->comment("Using merge base with '{$compareBranch}' as the starting point.");
+            return $mergeBase;
         }
+
+        // Fallback: last tag
+        $process = Process::fromShellCommandline("git describe --tags --abbrev=0");
+        $process->run();
+        if ($process->isSuccessful() && trim($process->getOutput())) {
+            $this->comment("Using latest tag as the starting point.");
+            return trim($process->getOutput());
+        }
+
+        throw new Exception("Could not determine a starting commit. Please specify it using --from=SHA.");
     }
+
 
     /**
      * Gets the current Git branch name.
@@ -116,17 +113,17 @@ class AiChangelogCommand extends Command
     protected function writeChangelog(string $outputFile, string $newContent, ?string $version)
     {
         $version = $version ?? 'UNRELEASED';
-        $header = "\n## {$version} - " . date('Y-m-d') . "\n";
-        $newContent = $header . "\n" . trim($newContent) . "\n\n";
+        $sepperator = "\n --- \n\n";
+        $newContent = trim($newContent) . $sepperator;
 
         if (File::exists($outputFile)) {
             $existingContent = File::get($outputFile);
-            
+
             // Find the position after the main title (# Changelog)
             $content = preg_replace('/(#\s*Changelog)/i', "$1\n" . $newContent, $existingContent, 1, $count);
-            
+
             if ($count === 0) {
-                // If "# Changelog" title not found, just prepend to the whole file
+                // If "# Changelog" title not found, just prepend
                 $content = "# Changelog\n" . $newContent . $existingContent;
             }
         } else {
