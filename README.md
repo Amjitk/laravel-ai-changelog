@@ -4,7 +4,7 @@
 [](https://www.google.com/search?q=https://packagist.org/packages/amjithk/laravel-ai-changelog)
 [](LICENSE.md)
 
-**Stop writing release notes manually\!** This Laravel package automatically reads your Git commit history and uses a Large Language Model (LLM) like OpenAI or Gemini to generate concise, categorized, and user-friendly changelog entries, placing them directly at the top of your `CHANGELOG.md` file.
+**Stop writing release notes manually\!** This Laravel package automatically reads your Git commit history and uses the Gemini LLM via the [hosseinhezami/laravel-gemini](https://packagist.org/packages/hosseinhezami/laravel-gemini) package to generate concise, categorized, and user-friendly changelog entries, placing them directly at the top of your `CHANGELOG.md` file.
 
 ## ✨ Features
 
@@ -41,11 +41,7 @@ The package requires an API key for the Large Language Model you choose to use.
 Add your key to your `.env` file:
 
 ```env
-# Example using OpenAI
-AI_CHANGELOG_API_KEY="sk-your-openai-api-key-here"
-
-# OR Example using Gemini
-# AI_CHANGELOG_API_KEY="AIzaSyYourGeminiApiKeyHere"
+GEMINI_API_KEY="AIzaSyYourGeminiApiKeyHere"
 ```
 
 -----
@@ -116,14 +112,13 @@ To use Google's Gemini model, you would update the config file and your `.env`:
 **`.env`:**
 
 ```env
-AI_CHANGELOG_API_KEY="AIzaSyYourGeminiApiKeyHere"
+GEMINI_API_KEY="AIzaSyYourGeminiApiKeyHere"
 ```
 
 **`config/ai-changelog.php`:**
 
 ```php
 'api' => [
-    'url' => 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
     'model' => 'gemini-2.5-flash',
     // ...
 ],
